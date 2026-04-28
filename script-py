@@ -1,0 +1,99 @@
+import pandas as pd
+import os
+import sys
+
+
+def limpiar_valor(valor):
+    """
+    Convierte valores vacíos en EMPTY.
+    """
+    if pd.isna(valor):
+        return "EMPTY"
+
+    valor = str(valor).strip()
+
+    if valor == "":
+        return "EMPTY"
+
+    return valor
+
+
+def excel_a_csv_largo(archivo_excel, archivo_csv):
+    """
+    Convierte Excel a CSV con formato:
+
+    Source SGT
+    Destination SGT
+    SGACL Name
+    Rule Status
+    """
+
+    # Leer Excel
+    df = pd.read_excel(archivo_excel)
+
+    if df.shape[1] < 2:
+        raise ValueError("El Excel debe tener al menos 2 columnas.")
+
+    # Primera columna = origen
+    columna_fila = df.columns[0]
+
+    # Desde columna B hasta la última = destino
+    columnas_datos = df.columns[1:]
+
+    resultado = []
+
+    # Recorrer filas
+    for _, fila in df.iterrows():
+
+        source_sgt = limpiar_valor(fila[columna_fila])
+
+        # recorrer todas las columnas hasta la última
+        for columna in columnas_datos:
+
+            destination_sgt = limpiar_valor(columna)
+            sgacl_name = limpiar_valor(fila[columna])
+
+            resultado.append([
+                source_sgt,
+                destination_sgt,
+                sgacl_name,
+                "Enabled"
+            ])
+
+    # Encabezado exacto solicitado
+    encabezados = [
+        "Source SGT:String(32):Required",
+        "Destination SGT:String(32):Required",
+        "SGACL Name:String(32):Required",
+        "Rule Status:String(enabled|disabled|monitor):Required"
+    ]
+
+    salida = pd.DataFrame(resultado, columns=encabezados)
+
+    # Guardar CSV
+    salida.to_csv(
+        archivo_csv,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print(f"Archivo generado correctamente: {archivo_csv}")
+    print(f"Total registros generados: {len(salida)}")
+
+
+if __name__ == "__main__":
+
+    if len(sys.argv) != 3:
+        print("Uso:")
+        print("python script.py archivo.xlsx salida.csv")
+        sys.exit(1)
+
+    archivo_excel = sys.argv[1]
+    archivo_csv = sys.argv[2]
+
+    if not os.path.exists(archivo_excel):
+        print(f"No existe el archivo: {archivo_excel}")
+        sys.exit(1)
+
+    excel_a_csv_largo(archivo_excel, archivo_csv)
+    
